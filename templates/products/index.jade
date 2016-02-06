@@ -4,11 +4,11 @@ block content
   each product in products
     ul
       li Product Name:&nbsp;
-        a(href='/products/#{product.id}') #{product.name}
+        a(href='/products/#{product._id}') #{product.name}
       li &nbsp;
-        a(href='/products/#{product.id}/edit') Edit
+        a(href='/products/#{product._id}/edit') Edit
       li &nbsp;
-        form#deleteForm(method='POST', action='/products/#{product.id}')
+        form#deleteForm(method='POST', action='/products/#{product._id}')
           input(type='hidden', name='_method', value='DELETE')
           input(type='submit', value='Delete Product')
         //- a.btn(href='/products/#{product.id}') Delete

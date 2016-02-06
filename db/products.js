@@ -1,108 +1,72 @@
 module.exports = (function () {
 
-  var productArray = [
+var mongooseConnection = require('./mongoose.js');
+var Schema = mongooseConnection.Schema;
+
+
+// define a schema
+var productSchema = new Schema({
+  name: String,
+  price: Number,
+  inventory: Number
+})
+
+// //compile a our model
+var Products = mongooseConnection.model('Products', productSchema);
+
+
+function _add(productObject, callback) {
+  var singleProduct = new Products(
     {
-      name: 'kai',
-      price:55,
-      id:0,
-      inventory:1
-    },
-    {
-      name: 'brad',
-      price: 100,
-      inventory: 110,
-      id: 1
+      name: productObject.name,
+      price: productObject.price,
+      inventory: productObject.inventory
     }
-  ];
+  );
+
+  return singleProduct.save(function(err,singleProduct){
+    if(err) return callback(err);
+    console.log('succesfully added ' + singleProduct.name);
+    return callback(null);
+  });
+}
 
 
-  function _add(productObject, callback) {
-    //here we are checking to make sure there are no duplicate values
-    //in our array
-    var filterProdArray = productArray.filter(function(product) {
-      return (product !== null);
-    });
+function _getAll(callback) {
+  Products.find({},function(err,products){
+    if(err) return callback(err);
+    return callback(null,products);
+  });
+}
 
-    for (var x = 0; x < filterProdArray.length; x++) {
+function _editById(requestBody, requestId, callback){
+  Products.findOneAndUpdate(
+    {"_id": requestId },
+    {$set:{name: requestBody.name}, $set:{inventory: requestBody.inventory},$set:{price: requestBody.price}},
+    function(err, product){
+    if(err) return callback(err);
+    return callback(null,product);
+  });
+}
 
-      if(productObject.name === filterProdArray[x].name) {
-        return callback(new Error(': this product has already been posted'));
-      }
-    }
 
-    productArray.push(productObject);
-    callback(null);
-  }
+function _getById(requestId, callback){
+  Products.findById(requestId,function(err,product){
+    if(err) console.log(err);
+    return callback(null,product);
+  });
+}
 
-//returns everything in the productArray when called
-  function _getAll() {
-    //here we are filtering out the Null in the array because when we ran
-    //a Delete request it erase the object and puts null in its place.  Then
-    //Jade tries to render the index page again but doesn't know what to do with
-    //null
-    var filterProdArray = productArray.filter(function (product) {
-      //filter goes thru each product in productArray and asks if it is 'not'
-      //null. For every item that is not null it returns true.
-      return (product !== null);
-    });
-    //filter puts all 'true' items in an array which is saved in line 39
-    //as filterProdArray and returned below
-    return filterProdArray;
-  }
 
-  function _editById(requestBody, requestId, callback){
+function _deleteProduct(requestId,callback) {
 
-    //Here we are checking to make sure someone has not deleted the information
-    //at the position in the array making it null
-    if(productArray[requestId]  === null){
-      //if null we invoke the callback function with a truthy value to throw an error
-      return callback(new Error(': ID is Null'));
-    }
+  Products.remove({"_id": requestId}, function(err,product){
+    if(err) return callback(err);
+    return callback(null,product);
+  });
 
-    //Here we are checking if PUT request ID is actually an ID in our array
-    //by looking at the length of array minus 1 (since ID's equal the position
-    //in the array)
-    if(requestId > (productArray.length-1)){
-      //if true we invoke callback function with a truthy value to throw an error
-      return callback(new Error(': ID not found'));
-    }
+}
 
-    //This checks for keys to edit in the database.  If found, values are reassigned
-    for(var key in requestBody){
-      if(key === 'name'){
-        productArray[requestBody.id].name = requestBody.name;
-      }
-      if(key === 'price'){
-        productArray[requestBody.id].price = requestBody.price;
-      }
-      if(key === 'inventory'){
-        productArray[requestBody.id].inventory = requestBody.inventory;
-      }
-    }
-    //if passed to here, changes have been made and callback is invoked
-    //with a null which is a falsey passed into callback function
-    callback(null);
-  }
-
-  function _getById(requestId){
-    return productArray[requestId];
-  }
-
-  function _deleteProduct(requestId, callback) {
-    //this checks to see if the id exist
-    if(requestId > (productArray.length-1)){
-      return callback(new Error(': ID not found'));
-    }
-
-    //this checks to make sure the index isn't null
-    if(productArray[requestId]  === null){
-    return callback(new Error(': ID is Null'));
-    }
-    //at this point, it erases the object at ID# index and replaces it with
-    //null.  The callback function is called with null
-    productArray[requestId] = null;
-    callback(null);
-  }
 
 //all the methods we are exposing/exporting on our productModule
 
