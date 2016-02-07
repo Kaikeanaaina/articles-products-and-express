@@ -3,27 +3,40 @@ var fs = require('fs');
 var router = express.Router();
 //don't need ./../db jus ../db/products also no .js needed. Express knows.
 //could also capitalize productModule to make it look like a class
-var productModule = require('./../db/articles.js');
+var articleModule = require('./../db/articles.js');
 
 router.get('/', function(request, response){
-  return response.render('articles/index', {
-    articles: productModule.getAll()
+  articleModule.getAll(function(err, articles){
+    if (err) return response.send('couldn\'t get all articles');
+    return response.render('articles/index', {
+      articles: articles
+    });
   });
 });
 
-router.get('/:id', function(request, response){
-  var requestId = parseInt(request.params.id);
+router.get('/new', function(request, response){
+  return response.render('articles/new');
+});
 
-  return response.render('articles/show', {
-    article: productModule.getById(requestId)
+router.get('/:id', function(request, response){
+  var requestId =(request.params.id);
+  //needs return put before all response.render in routes
+  articleModule.getById(requestId, function(err, article){
+    if (err) return response.send('couldn\'t get article');
+    return response.render('articles/show', {
+      article: article
+    });
   });
 });
 
 router.get('/:id/edit', function(request, response){
-  var requestId = (request.params.id);
+  var requestId = request.params.id;
 
-  return response.render('articles/edit', {
-    article: productModule.getById(requestId)
+  articleModule.getById(requestId, function(err, article){
+    if (err) return response.send('couldn\'t get article');
+    return response.render('articles/edit', {
+      article: article
+    });
   });
 });
 
@@ -53,26 +66,24 @@ function postValidation(request, response, next){
 }
 
 
-router.post('/', postValidation, function(request, response){
+router.post('/new', postValidation, function(request, response){
   var articleObject = {
     'title' : request.body.title,
     'body' : request.body.body,
-    'author' : request.body.author,
-    'urlTitle' : encodeURI(request.body.title)
+    'author' : request.body.author
   };
   console.log(articleObject);
 
-  productModule.add(articleObject, function(err){
+  articleModule.add(articleObject, function(err){
     if(err) {
       return response.send({
         success: false,
         message: err.message
       });
     } else {
-      var postResults = productModule.getAll();
-      return response.render('articles/index', {
-        articles: productModule.getAll()
-      });
+
+      return response.redirect("/articles/");
+
     }
   });
 });
@@ -122,8 +133,14 @@ function putValidation(request, response, next){
 }
 
 router.put('/:id/edit', putValidation, function(request, response){
+  var requestId = request.params.id;
 
-  productModule.editByName(request.body, function(err){
+  //this checks to see if the request.body had any of the keys
+
+  //this is similar to POST passing in needed variables and a callback
+  //function that will define 'err' as either an error or null (truthy or
+  //falsey) on the db side
+  articleModule.editById(request.body,requestId, function(err,article){
     if(err) {
       return response.send({
         success: false,
@@ -131,18 +148,20 @@ router.put('/:id/edit', putValidation, function(request, response){
       });
       //falsey return from callback function
     } else {
-      var putChange = productModule.getById(request.body);
-      return response.render('articles/index', {
-        articles: productModule.getAll()
-      });
+      var putChange = article._id;
+      console.log('successfully updated the article');
+      return response.redirect('/articles/'+putChange);
     }
   });
 });
 
-router.delete('/:id',function(request, response){
+router.delete('/:id', function(request, response) {
   var requestId = request.params.id;
 
-  productModule.deleteArticle(requestId, function (err) {
+  //calls deleteProduct function in our db, passes ID # and cb func
+  //see other routes for explanation of err/truthy & null/falsey
+
+  articleModule.deleteArticle(requestId, function (err,article) {
     if(err) {
       return response.send({
         success: fail,
@@ -152,12 +171,9 @@ router.delete('/:id',function(request, response){
     } else { //if this callback function returns falsey to error then returns
       //success with what the id# now show (null)
       //var deleteChange = productModule.getById(requestId);
-      return response.render('articles/index', {
-        articles: productModule.getAll()
-      });
+      return response.redirect('/articles/');
     }
   });
-
 });
 
 

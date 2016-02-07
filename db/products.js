@@ -42,7 +42,9 @@ function _getAll(callback) {
 function _editById(requestBody, requestId, callback){
   Products.findOneAndUpdate(
     {"_id": requestId },
-    {$set:{name: requestBody.name}, $set:{inventory: requestBody.inventory},$set:{price: requestBody.price}},
+    {
+      $set:{name: requestBody.name, inventory: requestBody.inventory, price: requestBody.price  }
+    },
     function(err, product){
     if(err) return callback(err);
     return callback(null,product);

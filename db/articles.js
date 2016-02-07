@@ -15,85 +15,82 @@ module.exports = (function(){
 
   ];
 
-  function _add(articleObject, callback){
-    //here we are checking to make sure there are no duplicate values
-    //in our array
-    var filterArticlesArray = articlesArray.filter(function(article) {
-      return (article !== null);
-    });
+  var mongooseConnection = require('./mongoose.js');
+  var Schema = mongooseConnection.Schema;
 
-    for (var x = 0; x < filterArticlesArray.length; x++) {
 
-      if(articleObject.title === filterArticlesArray[x].title) {
-        return callback(new Error(': this article has already been posted'));
-      }
+  // define a schema
+  var articleSchema = new Schema({
+    title: String,
+    body: String,
+    author: String
+  })
+
+// //compile a our model
+var Articles = mongooseConnection.model('Articles', articleSchema);
+
+
+function _add(articleObject, callback){
+  var singleArticle = new Articles(
+    {
+      title: articleObject.title,
+      body: articleObject.body,
+      author: articleObject.author
     }
+  );
+  console.log(singleArticle, ' this is the db side');
+
+  return singleArticle.save(function(err,singleArticle){
+    if(err) return callback(err);
+    console.log('succesfully added ' + singleArticle.name);
+    return callback(null);
+  });
 
     articlesArray.push(articleObject);
     callback(null);
   }
 
-  function _getAll() {
-    //here we are filtering out the Null in the array because when we ran
-    //a Delete request it erase the object and puts null in its place.  Then
-    //Jade tries to render the index page again but doesn't know what to do with
-    //null
-    var filterArticlesArray = articlesArray.filter(function (article) {
-      //filter goes thru each product in productArray and asks if it is 'not'
-      //null. For every item that is not null it returns true.
-      return (article !== null);
-    });
-    //filter puts all 'true' items in an array which is saved in line 39
-    //as filterProdArray and returned below
-    return filterArticlesArray;
-  }
 
-  function _getById(requestId){
-    for(var i = 0 ; i < articlesArray.length ; i++){
-      if(articlesArray[i].title === requestId){
-        return articlesArray[i];
-      }
-    }
-  }
+function _getAll(callback) {
+  Articles.find({},function(err,articles){
+    if(err) return callback(err);
+    return callback(null,articles);
+  });
+}
 
-  function _editByName(requestBody, callback){
+function _getById(requestId,callback){
+  Articles.findById(requestId,function(err,article){
+    if(err) console.log(err);
+    return callback(null,article);
+  });
+}
 
-    for(var i = 0 ; i < articlesArray.length ; i++){
-      if(articlesArray[i].title === requestBody.title){
-        for(var key in requestBody){
-          if(key === 'title'){
-            articlesArray[i].title = requestBody.title;
-            articlesArray[i].urlTitle = encodeURI(requestBody.title);
-          }
-          if(key === 'author'){
-            articlesArray[i].author = requestBody.author;
-          }
-          if(key === 'body'){
-            articlesArray[i].body = requestBody.body;
-          }
-        }
-      }
-    }
+function _editById(requestBody, requestId, callback){
+  Articles.findOneAndUpdate(
+    {"_id": requestId },
+    {
+      $set:{title: requestBody.title, author: requestBody.author, body: requestBody.body}
+    },
+    function(err, article){
+    if(err) return callback(err);
+    return callback(null,article);
+  });
+}
 
-    callback(null);
-  }
+function _deleteArticle(requestId,callback) {
 
-  function _deleteArticle(requestBody, callback){
+  Articles.remove({"_id": requestId}, function(err,article){
+    if(err) return callback(err);
+    return callback(null,article);
+  });
 
-    for(var i = 0 ; i < articlesArray.length ; i++){
-      if(articlesArray[i].title === requestBody){
-        articlesArray[i] = null;
-      }
-    }
-
-    callback(null);
-  }
+}
 
   return{
     getAll:_getAll,
     add:_add,
     getById:_getById,
-    editByName:_editByName,
+    editById:_editById,
     deleteArticle:_deleteArticle
 
   };

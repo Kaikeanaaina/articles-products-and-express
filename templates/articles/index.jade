@@ -4,11 +4,11 @@ block content
   each article in articles
     ul
       li Product Name:&nbsp;
-        a(href='/articles/#{article.urlTitle}') #{article.title}
+        a(href='/articles/#{article._id}') #{article.title}
       li &nbsp;
-        a(href='/articles/#{article.urlTitle}/edit') Edit
+        a(href='/articles/#{article._id}/edit') Edit
       li &nbsp;
-        form#deleteArticleForm(method='POST', action='/articles/#{article.urlTitle}')
+        form#deleteArticleForm(method='POST', action='/articles/#{article._id}')
           input(type='hidden', name='_method', value='DELETE')
           input(type='submit', value='Delete article')
         //- a.btn(href='/articles/#{article.urlTitle}') Delete
